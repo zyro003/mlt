@@ -1,0 +1,150 @@
+Regression Model Evaluation Techniques
+# Step 1: Import Libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_diabetes
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+%matplotlib inline
+print("Libraries imported successfully.")
+
+# Step 2: Load Dataset
+diabetes = load_diabetes()
+X = pd.DataFrame(diabetes.data, columns=diabetes.feature_names)
+y = pd.Series(diabetes.target, name="disease_progression")
+
+print("Dataset shape:", X.shape)
+print("Number of samples:", X.shape[0])
+print("Number of input features:", X.shape[1])
+display(X.head())
+display(y.head())
+
+# Step 3: Inspect Dataset
+X.info()
+print("\nMissing values per feature:")
+display(X.isnull().sum())
+display(X.describe().round(3))
+
+# Step 4: Split Dataset
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.20, random_state=42)
+
+print("Training samples:", X_train.shape[0])
+print("Testing samples:", X_test.shape[0])
+
+# Step 5: Train Two Regression Models
+linear_model = make_pipeline(StandardScaler(), LinearRegression())
+forest_model = RandomForestRegressor(
+    n_estimators=100, random_state=42, min_samples_leaf=2)
+
+linear_model.fit(X_train, y_train)
+forest_model.fit(X_train, y_train)
+print("Both regression models have been trained.")
+
+# Step 6: Generate Predictions
+y_pred_linear = linear_model.predict(X_test)
+y_pred_forest = forest_model.predict(X_test)
+
+comparison = pd.DataFrame({
+    "Actual": y_test.to_numpy(),
+    "Linear Regression Prediction": y_pred_linear,
+    "Random Forest Prediction": y_pred_forest})
+
+display(comparison.head(10).round(2))
+
+# Step 7: Evaluation Metrics
+# MAE, MSE, RMSE, R2 and Adjusted R2
+
+# Step 8: Calculate All Metrics
+def calculate_regression_metrics(y_true, y_pred, p):
+    mae = mean_absolute_error(y_true, y_pred)
+    mse = mean_squared_error(y_true, y_pred)
+    rmse = np.sqrt(mse)
+    r2 = r2_score(y_true, y_pred)
+    n = len(y_true)
+    adjusted_r2 = 1 - (1 - r2) * (n - 1) / (n - p - 1)
+
+    return {
+        "MAE": mae, "MSE": mse, "RMSE": rmse,
+        "R2": r2, "Adjusted R2": adjusted_r2
+    }
+
+linear_metrics = calculate_regression_metrics(
+    y_test, y_pred_linear, X_test.shape[1])
+
+forest_metrics = calculate_regression_metrics(
+    y_test, y_pred_forest, X_test.shape[1])
+
+results = pd.DataFrame({
+    "Linear Regression": linear_metrics,
+    "Random Forest": forest_metrics
+}).T
+
+display(results.round(3))
+
+# Step 9: Interpret Results
+# Lower MAE, MSE and RMSE are better.
+# Higher R2 generally indicates a better fit.
+
+# Step 10: Actual vs Predicted Plot
+fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+plot_data = [
+    ("Linear Regression", y_pred_linear),
+    ("Random Forest", y_pred_forest)]
+
+low = min(y_test.min(), y_pred_linear.min(), y_pred_forest.min())
+high = max(y_test.max(), y_pred_linear.max(), y_pred_forest.max())
+
+for ax, (name, pred) in zip(axes, plot_data):
+    ax.scatter(y_test, pred, alpha=0.75)
+    ax.plot([low, high], [low, high], linestyle="--")
+    ax.set_xlabel("Actual values")
+    ax.set_ylabel("Predicted values")
+    ax.set_title(name)
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Step 11: Residual Analysis
+residuals_linear = y_test.to_numpy() - y_pred_linear
+residuals_forest = y_test.to_numpy() - y_pred_forest
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+residual_data = [
+    ("Linear Regression", y_pred_linear, residuals_linear),
+    ("Random Forest", y_pred_forest, residuals_forest)
+]
+
+for ax, (name, pred, residuals) in zip(axes, residual_data):
+    ax.scatter(pred, residuals, alpha=0.75)
+    ax.axhline(y=0, linestyle="--")
+    ax.set_xlabel("Predicted values")
+    ax.set_ylabel("Residual (actual - predicted)")
+    ax.set_title(name + " Residual Plot")
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Step 12: Cross-Validation
+cv_scores = cross_val_score(
+    linear_model, X, y, cv=5, scoring="r2")
+
+print("R2 score for each fold:", np.round(cv_scores, 3))
+print("Mean cross-validation R2:", round(cv_scores.mean(), 3))
+print("Standard deviation:", round(cv_scores.std(), 3))
+
+# Step 13: Calculate MAPE
+from sklearn.metrics import mean_absolute_percentage_error
+
+mape = mean_absolute_percentage_error(y_test, y_pred_linear) * 100
+print(f"Linear Regression MAPE: {mape:.2f}%")
