@@ -1,0 +1,70 @@
+Exploring Unsupervised Learning with K-Means Clustering
+# Step 1: Import Libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_iris
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+# Step 2: Load Iris Dataset
+iris = load_iris()
+X = pd.DataFrame(iris.data, columns=iris.feature_names)
+species_names = [iris.target_names[i] for i in iris.target]
+
+print("Dataset size:", X.shape)
+print("\nFirst five rows:")
+display(X.head())
+print("\nFeature names:", list(X.columns))
+
+# Step 3: Prepare the Data
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+print("Scaled data shape:", X_scaled.shape)
+
+# Step 4: Apply K-Means Clustering
+k = 3
+kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+cluster_labels = kmeans.fit_predict(X_scaled)
+print("First 15 cluster assignments:", cluster_labels[:15])
+print("Inertia:", round(kmeans.inertia_, 2))
+
+# Step 5: Visualize Clusters using PCA
+pca = PCA(n_components=2)
+X_2d = pca.fit_transform(X_scaled)
+
+plt.figure(figsize=(8, 5))
+plt.scatter(X_2d[:, 0], X_2d[:, 1], c=cluster_labels,
+            cmap="viridis", s=50)
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("K-Means Clusters on Iris Dataset (PCA View)")
+plt.grid(True)
+plt.show()
+
+print("Variance shown by the two PCA components:",
+      f"{pca.explained_variance_ratio_.sum():.1%}")
+
+# Step 6: View Cluster Sizes
+cluster_counts = pd.Series(cluster_labels).value_counts().sort_index()
+for cluster_id, count in cluster_counts.items():
+    print(f"Cluster {cluster_id}: {count} flowers")
+
+# Step 7: Use Elbow Method to Explore k
+inertias = []
+k_values = range(1, 8)
+
+for number_of_clusters in k_values:
+    model = KMeans(n_clusters=number_of_clusters,
+                   random_state=42, n_init=10)
+    model.fit(X_scaled)
+    inertias.append(model.inertia_)
+
+plt.figure(figsize=(7, 5))
+plt.plot(list(k_values), inertias, marker="o")
+plt.xlabel("Number of clusters (k)")
+plt.ylabel("Inertia")
+plt.title("Elbow Method on Iris Dataset")
+plt.xticks(list(k_values))
+plt.grid(True)
+plt.show()
