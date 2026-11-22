@@ -1,0 +1,98 @@
+Support Vector Machine (SVM) for Classification
+# Step 1: Import Libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.datasets import load_breast_cancer, load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+# Step 2: Binary Classification - Breast Cancer Dataset
+cancer = load_breast_cancer()
+X_binary = pd.DataFrame(cancer.data[:, :5], columns=cancer.feature_names[:5])
+y_binary = cancer.target
+
+print("First five rows of features:")
+display(X_binary.head())
+print("Target classes:", cancer.target_names)
+
+X_train_b, X_test_b, y_train_b, y_test_b = train_test_split(
+    X_binary, y_binary, test_size=0.2, random_state=42, stratify=y_binary)
+
+scaler_b = StandardScaler()
+X_train_b_scaled = scaler_b.fit_transform(X_train_b)
+X_test_b_scaled = scaler_b.transform(X_test_b)
+
+print("Training samples:", len(X_train_b))
+print("Testing samples:", len(X_test_b))
+
+# Step 3: Train Binary SVM Classifier
+svm_binary = SVC(kernel="linear", C=1.0)
+svm_binary.fit(X_train_b_scaled, y_train_b)
+y_pred_b = svm_binary.predict(X_test_b_scaled)
+
+print(f"Binary classification accuracy: {accuracy_score(y_test_b, y_pred_b):.2%}")
+print("\nClassification report:")
+print(classification_report(y_test_b, y_pred_b, target_names=cancer.target_names))
+
+# Step 4: Display Binary Confusion Matrix
+cm_b = confusion_matrix(y_test_b, y_pred_b)
+plt.figure(figsize=(5, 4))
+sns.heatmap(cm_b, annot=True, fmt="d", cmap="Blues",
+            xticklabels=cancer.target_names, yticklabels=cancer.target_names)
+plt.xlabel("Predicted label")
+plt.ylabel("Actual label")
+plt.title("Binary SVM: Confusion Matrix")
+plt.show()
+
+# Step 5: Multiclass Classification - Iris Dataset
+iris = load_iris()
+X_multi = pd.DataFrame(iris.data, columns=iris.feature_names)
+y_multi = iris.target
+
+display(X_multi.head())
+print("Classes:", iris.target_names)
+
+X_train_m, X_test_m, y_train_m, y_test_m = train_test_split(
+    X_multi, y_multi, test_size=0.2, random_state=42, stratify=y_multi)
+
+scaler_m = StandardScaler()
+X_train_m_scaled = scaler_m.fit_transform(X_train_m)
+X_test_m_scaled = scaler_m.transform(X_test_m)
+
+# Step 6: Train Multiclass SVM Using RBF Kernel
+svm_multi = SVC(kernel="rbf", C=1.0, gamma="scale")
+svm_multi.fit(X_train_m_scaled, y_train_m)
+y_pred_m = svm_multi.predict(X_test_m_scaled)
+
+print(f"Multiclass classification accuracy: {accuracy_score(y_test_m, y_pred_m):.2%}")
+print("\nClassification report:")
+print(classification_report(y_test_m, y_pred_m, target_names=iris.target_names))
+
+# Step 7: Display Multiclass Confusion Matrix
+cm_m = confusion_matrix(y_test_m, y_pred_m)
+plt.figure(figsize=(5, 4))
+sns.heatmap(cm_m, annot=True, fmt="d", cmap="Greens",
+            xticklabels=iris.target_names, yticklabels=iris.target_names)
+plt.xlabel("Predicted flower")
+plt.ylabel("Actual flower")
+plt.title("Multiclass SVM (RBF): Confusion Matrix")
+plt.show()
+
+# Step 8: Compare Kernels and Understand Support Vectors
+kernel_results = []
+
+for kernel_name in ["linear", "rbf", "poly"]:
+    model = SVC(kernel=kernel_name, C=1.0, gamma="scale")
+    model.fit(X_train_m_scaled, y_train_m)
+    predictions = model.predict(X_test_m_scaled)
+
+    kernel_results.append({
+        "Kernel": kernel_name,
+        "Test accuracy": round(accuracy_score(y_test_m, predictions), 4)})
+
+display(pd.DataFrame(kernel_results))
+print("Support vectors per class:", svm_multi.n_support_)
+print("Total support vectors:", len(svm_multi.support_))
