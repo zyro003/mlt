@@ -1,0 +1,43 @@
+Model Selection Techniques
+# Step 1: Import Libraries and Load Dataset
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# Step 2: Split Data and Compare Models
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+models = {
+    "Logistic Regression": make_pipeline(StandardScaler()
+    , LogisticRegression(max_iter=1000)),
+    "Decision Tree": DecisionTreeClassifier(random_state=42),
+    "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)}
+
+scores = {}
+
+for name, model in models.items():
+    cv_score = cross_val_score(model, X_train, y_train, cv=5, scoring="accuracy")
+    scores[name] = cv_score.mean()
+    print(name, "Average CV Accuracy:", round(cv_score.mean(), 3))
+
+# Select Best Model
+best_name = max(scores, key=scores.get)
+best_model = models[best_name]
+
+print("\nBest model:", best_name)
+
+# Step 3: Train and Evaluate Best Model
+best_model.fit(X_train, y_train)
+y_pred = best_model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+
+print("Test Accuracy:", round(accuracy, 3))
