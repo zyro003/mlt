@@ -1,0 +1,108 @@
+Binary Classification with Logistic Regression
+# Step 1: Import Libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, roc_curve
+
+# Step 2: Load Breast Cancer Dataset
+data = load_breast_cancer()
+X = data.data
+y = 1 - data.target
+
+print("Dataset shape:", X.shape)
+print("Target names:", data.target_names)
+print("Target meaning: 0 = Benign, 1 = Malignant")
+
+# Step 3: Basic Data Checking
+df = pd.DataFrame(X, columns=data.feature_names)
+df["target"] = y
+display(df.head())
+print("Shape:", df.shape)
+print("Total missing values:", df.isnull().sum().sum())
+print("\nTarget distribution:")
+print(df["target"].value_counts())
+
+# Step 4: Separate Features (X) and Target (y)
+X = df.drop("target", axis=1)
+y = df["target"]
+print("X shape:", X.shape)
+print("y shape:", y.shape)
+
+# Step 5: Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+print("Training data:", X_train.shape)
+print("Testing data:", X_test.shape)
+
+# Step 6: Feature Scaling
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+print("Scaling completed.")
+
+# Step 7: Create and Train Logistic Regression Model
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train_scaled, y_train)
+print("Model training completed!")
+
+# Step 8: Make Predictions
+y_pred = model.predict(X_test_scaled)
+y_prob = model.predict_proba(X_test_scaled)[:, 1]
+print("First 10 predictions:", y_pred[:10])
+print("First 10 probabilities:", y_prob[:10])
+
+# Step 9: Calculate Evaluation Metrics
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+auc = roc_auc_score(y_test, y_prob)
+
+print("========== MODEL PERFORMANCE ==========")
+print("Accuracy  :", round(accuracy, 4))
+print("Precision :", round(precision, 4))
+print("Recall    :", round(recall, 4))
+print("F1 Score  :", round(f1, 4))
+print("ROC-AUC   :", round(auc, 4))
+
+# Step 10: Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:")
+print(cm)
+
+plt.figure(figsize=(6, 5))
+plt.imshow(cm, interpolation="nearest")
+plt.title("Confusion Matrix")
+plt.colorbar()
+plt.xticks([0, 1], data.target_names)
+plt.yticks([0, 1], data.target_names)
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+
+for i in range(2):
+    for j in range(2):
+        plt.text(j, i, cm[i, j], ha="center", va="center")
+
+plt.show()
+
+# Step 11: Classification Report
+print(classification_report(
+    y_test, y_pred, target_names=data.target_names
+))
+
+# Step 12: ROC Curve
+fpr, tpr, thresholds = roc_curve(y_test, y_prob)
+plt.figure(figsize=(7, 5))
+plt.plot(fpr, tpr, label=f"Logistic Regression (AUC = {auc:.2f})")
+plt.plot([0, 1], [0, 1], linestyle="--")
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("ROC Curve")
+plt.legend()
+plt.show()
